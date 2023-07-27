@@ -1,3 +1,6 @@
+//mux 6 to 1 - 32 bits inputs e output e 3 bits sel
+//MemReadCtrl
+
 module mux6to1_32b(input wire [31:0] input000_0, 
                    input wire [31:0] input001_1, 
                    input wire [31:0] input010_2, 
