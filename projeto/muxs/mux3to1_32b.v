@@ -1,3 +1,9 @@
+//mux 3 to 1 - 32 bits inputs e output e 2 bits sel
+//PCCtrl
+//ShiftEntCtrl
+//PCSource
+//ALUSrcA
+
 module mux3to1_32b(input wire [31:0] input00_0, 
 	           input wire [31:0] input01_1, 
 	           input wire [31:0] input10_2, 
