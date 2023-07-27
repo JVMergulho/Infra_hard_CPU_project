@@ -1,4 +1,4 @@
-//mux de 32 bits 
+//mux de 2 para 1 - 32 bits inputs e 1 bit sel 
 //DivSrcA
 //DivSrcB
 //HiCtrl
