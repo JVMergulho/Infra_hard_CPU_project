@@ -1,3 +1,6 @@
+//mux 4 to 1 - 5 bits inputs e output e 2 bits sel
+//EntEnd
+
 module mux4to1_5b(input wire [4:0] input00_0, 
                   input wire [4:0] input01_1, 
        	          input wire [4:0] input10_2, 
