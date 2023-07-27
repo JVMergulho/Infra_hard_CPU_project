@@ -1,3 +1,6 @@
+//mux 4 to 1 - 32 bits inputs e outputs e 2 bits sel
+//ALUSrcB
+
 module mux4to1_32b(input wire [31:0] input00_0, 
                    input wire [31:0] input01_1, 
                    input wire [31:0] input10_2, 
