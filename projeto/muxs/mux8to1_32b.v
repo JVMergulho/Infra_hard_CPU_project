@@ -1,3 +1,6 @@
+//mux 8 to 1 - 32 bits inputs e output e 3 bits sel
+//EntWrite
+
 module mux8to1_32b(input wire [31:0] input000_0, 
               	   input wire [31:0] input001_1, 
             	   input wire [31:0] input010_2, 
