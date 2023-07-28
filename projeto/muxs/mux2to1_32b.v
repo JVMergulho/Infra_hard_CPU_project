@@ -3,20 +3,15 @@
 //DivSrcB
 //HiCtrl
 //LoCtrl
+
+
 module mux2to1_32b(input wire [31:0] input0, 
 		               input wire [31:0] input1,
 		               input wire sel, 
                	   output reg [31:0] out);
   
-  always@(input0 or input1 or sel)begin
-      if (sel == 1'b0)
-      begin
-        out = input0;
-      end
-      else 
-      begin
-        out = input1;
-      end
-    end
+  assign out = (sel == 1'b0) ? input0 :
+	       (sel == 1'b1) ? input1 : 
+	        1'bX;
       
 endmodule
