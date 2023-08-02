@@ -6,7 +6,7 @@ module mux4to1_5b(input wire [4:0] input00_0,
        	          input wire [4:0] input10_2, 
                   input wire [4:0] input11_3, 
                   input wire [1:0] sel, 
-                  output reg [4:0] out);
+                  output wire [4:0] out);
 
 
   assign out = (sel == 2'b00) ? input00_0 : 
