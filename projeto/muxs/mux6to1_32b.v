@@ -8,7 +8,7 @@ module mux6to1_32b(input wire [31:0] input000_0,
                    input wire [31:0] input100_4, 
                    input wire [31:0] input101_5, 
                    input wire [2:0] sel, 
-                   output reg [31:0] out);
+                   output wire [31:0] out);
   
   assign out = (sel == 3'b000) ? input000_0 : 
                (sel == 3'b001) ? input001_1 :
