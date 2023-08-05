@@ -418,7 +418,7 @@ module controle(
                   end
                 else 
                   if(COUNTER == 6'b000010) begin
-                    EntEnd = 2'b00;
+                    EntEnd = 2'b01;
                     EntWrite = 3'b000;
                     RegWrite = 1'b1;
                     
@@ -452,7 +452,7 @@ module controle(
                 end 
                 else
                   if(COUNTER == 6'b000001) begin
-                    EntEnd = 2'b00;
+                    EntEnd = 2'b01;
                     EntWrite = 3'b000;
                     RegWrite = 1'b1;
                     
@@ -492,7 +492,7 @@ module controle(
                   end
                 else 
                   if(COUNTER == 6'b000001) begin
-                    EntEnd = 2'b00;
+                    EntEnd = 2'b01;
                     EntWrite = 3'b000;
                     RegWrite = 1'b1;
                     
