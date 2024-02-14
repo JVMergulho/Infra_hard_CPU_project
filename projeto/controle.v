@@ -6,16 +6,15 @@ module controle(
   // instruções
   input wire [5:0] OP, 
     
-  input wire [4:0] func,
+  input wire [5:0] func,
   
   // exceções
-  input wire overflow, divZero,
+  input wire overflow, divzero,
   
   // vindas da ALU
   input wire GT, ET,
-  
-// alterar o reset, colocar todos os sinais em cada estado
 
+  // REVER CICLOS DO BRANCH E DO SHIFTER
     
   //saídas
   // multiplexadores
@@ -82,11 +81,11 @@ module controle(
     parameter LB = 6'b011111;
     parameter LH = 6'b100000;
     parameter LUI = 6'b100001;
-    parameter LW = 6'b100010;
+    parameter LW = 6'b100010; // 34
     parameter SB = 6'b100011;
     parameter SH = 6'b100100;
     parameter SLTI = 6'b100101;
-    parameter SW = 6'b100111;
+    parameter SW = 6'b100111; // 39
     parameter J = 6'b101000;
     parameter JAL = 6'b101001;
     parameter ADDM = 6'b101010;
@@ -194,7 +193,7 @@ module controle(
           case(state)
               // sempre acontece o fetch (3x) e depois o decode 
                FETCH: begin
-                 if (COUNTER <= 6'b000011) begin
+                 if (COUNTER < 6'b000011) begin
                    // zerar todos os sinais que permitem escrita
                    A_W = 1'b0;
                    B_W = 1'b0;
@@ -304,6 +303,8 @@ module controle(
                       SH_op: state = SH;
                       SW_op: state = SW;
                       SLTI_op: state = SLTI;
+                      J_op: state = J;
+                      JAL_op: state = JAL;
                       default: state = OP_ERROR;
                     endcase
                   end
@@ -313,7 +314,7 @@ module controle(
               // checa o state e ativa os sinais necessários em cada ciclo para realizar a instrução
               //exceções
               OVERFLOW: begin  
-                if(COUNTER <= 6'b000001) begin
+                if(COUNTER < 6'b000011) begin
                   // zerar todos os sinais que permitem escrita
                   A_W = 1'b0;
                   B_W = 1'b0;
@@ -339,44 +340,103 @@ module controle(
                   COUNTER = COUNTER + 6'b000001;
                 end
                 else
-                  if(COUNTER == 6'b000010) begin
+                  if(COUNTER == 6'b000011) begin
                     PCCtrl = 2'b10;
                     PCWrite = 1'b1;
+                    EPC_W = 1'b0;
+
+                    COUNTER = COUNTER + 6'b000001;
+                  end
+                else
+                if(COUNTER == 6'b000100) begin
+
+                    COUNTER = 6'b000000;
+                    state = FETCH;
                   end
               end
 
               OP_ERROR: begin  
-                  if(COUNTER <= 6'b000001) begin
-                    // zerar todos os sinais que permitem escrita
-                    A_W = 1'b0;
-                    B_W = 1'b0;
-                    MDR_W = 1'b0;
-                    RegDiv_W = 1'b0; 
-                    ALUOut_W = 1'b0;
-                    PCWrite = 1'b0;
+                if(COUNTER < 6'b000011) begin
+                  // zerar todos os sinais que permitem escrita
+                  A_W = 1'b0;
+                  B_W = 1'b0;
+                  MDR_W = 1'b0;
+                  RegDiv_W = 1'b0; 
+                  ALUOut_W = 1'b0;
+                  PCWrite = 1'b0;
+                  EPC_W = 1'b0;
+                  Hi_W = 1'b0; 
+                  Lo_W = 1'b0;
+                  MemWrite = 1'b0;
+                  RegWrite = 1'b0;
+                  IRWrite = 1'b0;
+                  
+                  MemReadCtrl = 3'b001;
+                  MemWrite = 1'b0;
+                  ALUSrcA = 2'b00;
+                  ALUSrcB = 3'b001;
+                  ALUCtrl = 3'b010;
+                  PCSource = 2'b01;
+                  EPC_W = 1'b1;
+
+                  COUNTER = COUNTER + 6'b000001;
+                end
+                else
+                  if(COUNTER == 6'b000011) begin
+                    PCCtrl = 2'b10;
+                    PCWrite = 1'b1;
                     EPC_W = 1'b0;
-                    Hi_W = 1'b0; 
-                    Lo_W = 1'b0;
-                    MemWrite = 1'b0;
-                    RegWrite = 1'b0;
-                    IRWrite = 1'b0;
-                    
-                    MemReadCtrl = 3'b001;
-                    MemWrite = 1'b0;
-                    ALUSrcA = 2'b00;
-                    ALUSrcB = 3'b001;
-                    ALUCtrl = 3'b010;
-                    PCSource = 2'b01;
-                    EPC_W = 1'b1;
-  
+
                     COUNTER = COUNTER + 6'b000001;
                   end
-                  else
-                    if(COUNTER == 6'b000010) begin
-                      PCCtrl = 2'b10;
-                      PCWrite = 1'b1;
-                    end
+                else
+                if(COUNTER == 6'b000100) begin
+
+                    COUNTER = 6'b000000;
+                    state = FETCH;
+                  end
+              end
+              DIV_ZERO: begin  
+                if(COUNTER < 6'b000011) begin
+                  // zerar todos os sinais que permitem escrita
+                  A_W = 1'b0;
+                  B_W = 1'b0;
+                  MDR_W = 1'b0;
+                  RegDiv_W = 1'b0; 
+                  ALUOut_W = 1'b0;
+                  PCWrite = 1'b0;
+                  EPC_W = 1'b0;
+                  Hi_W = 1'b0; 
+                  Lo_W = 1'b0;
+                  MemWrite = 1'b0;
+                  RegWrite = 1'b0;
+                  IRWrite = 1'b0;
+                  
+                  MemReadCtrl = 3'b011;
+                  MemWrite = 1'b0;
+                  ALUSrcA = 2'b00;
+                  ALUSrcB = 3'b001;
+                  ALUCtrl = 3'b010;
+                  PCSource = 2'b01;
+                  EPC_W = 1'b1;
+
+                  COUNTER = COUNTER + 6'b000001;
                 end
+                else
+                  if(COUNTER == 6'b000011) begin
+                    PCCtrl = 2'b10;
+                    PCWrite = 1'b1;
+                    EPC_W = 1'b0;
+
+                    COUNTER = COUNTER + 6'b000001;
+                  end
+                else
+                if(COUNTER == 6'b000100) begin
+
+                    COUNTER = 6'b000000;
+                    state = FETCH;
+                  end
+              end
               
               //instruções R
               ADD: begin
@@ -398,18 +458,10 @@ module controle(
                   ALUSrcA = 2'b10;
                   ALUSrcB = 2'b00;
                   ALUCtrl = 3'b001;
+				          ALUOut_W = 1'b1;
 
                   COUNTER = COUNTER + 6'b000001;
                 end
-                else
-                  if (COUNTER == 6'b000001) begin
-                    ALUSrcA = 2'b10;
-                    ALUSrcB = 2'b00;
-                    ALUCtrl = 3'b001;
-                    ALUOut_W = 1'b1;
-
-                    COUNTER = COUNTER + 6'b000001;
-                  end
                 else
                   if(overflow == 1'b1) begin
                     state = OVERFLOW;
@@ -417,7 +469,7 @@ module controle(
                     COUNTER = 6'b000000;
                   end
                 else 
-                  if(COUNTER == 6'b000010) begin
+                  if(COUNTER == 6'b000001) begin
                     EntEnd = 2'b01;
                     EntWrite = 3'b000;
                     RegWrite = 1'b1;
@@ -525,24 +577,15 @@ module controle(
                    COUNTER = COUNTER + 6'b000001;
                 end
                 else
-                  if (COUNTER == 6'b000001) begin
-                    ALUSrcA = 2'b10;
-                    ALUSrcB = 2'b11;
-                    ALUCtrl = 3'b001;
-                    ALUOut_W = 1'b1;
-
-                    COUNTER = COUNTER + 6'b000001;
-                  end
-                else
                   if(overflow == 1'b1) begin
                     state = OVERFLOW;
   
                     COUNTER = 6'b000000;
                   end
                 else
-                  if(COUNTER == 6'b000010) begin
+                  if(COUNTER == 6'b000001) begin
                     EntEnd = 2'b00;
-                    EntWrite = 2'b00;
+                    EntWrite = 3'b000;
                     RegWrite = 1'b1;
                     
                     COUNTER = 6'b000000;
@@ -575,8 +618,8 @@ module controle(
                   end
                   else 
                     if(COUNTER == 6'b000001) begin
-                      EntEnd = 2'b01;
-                      EntWrite = 2'b00;
+                      EntEnd = 2'b00;
+                      EntWrite = 3'b000;
                       RegWrite = 1'b1;
                       
                       COUNTER = 6'b000000;
@@ -662,83 +705,92 @@ module controle(
                   end
               SLL: begin
                 if(COUNTER == 6'b000000) begin
-                        // zerar todos os sinais que permitem escrita
-                        A_W = 1'b0;
-                        B_W = 1'b0;
-                        MDR_W = 1'b0;
-                        RegDiv_W = 1'b0; 
-                        ALUOut_W = 1'b0;
-                        PCWrite = 1'b0;
-                        EPC_W = 1'b0;
-                        Hi_W = 1'b0; 
-                        Lo_W = 1'b0;
-                        MemWrite = 1'b0;
-                        RegWrite = 1'b0;
-                        IRWrite = 1'b0;
-                        
-                        ShiftEntCtrl = 2'b01;
-                        ShiftShiftCtrl = 2'b01;
-                        ShifterCtrl = 3'b001;
-    
-                       COUNTER = COUNTER + 6'b000001;
-                    end
-                    else 
-                      if(COUNTER == 6'b000001) begin
-                        ShifterCtrl = 3'b010;
-                        
-                        COUNTER = COUNTER + 6'b000001;
-                        
-                      end 
-                else if (COUNTER == 6'b000010) begin
-                        ShifterCtrl = 3'b000;
-                        EntWrite = 2'b01;
-                        EntEnd = 2'b00;
-                        RegWrite = 1'b1;
+                      // zerar todos os sinais que permitem escrita
+                      A_W = 1'b0;
+                      B_W = 1'b0;
+                      MDR_W = 1'b0;
+                      RegDiv_W = 1'b0; 
+                      ALUOut_W = 1'b0;
+                      PCWrite = 1'b0;
+                      EPC_W = 1'b0;
+                      Hi_W = 1'b0; 
+                      Lo_W = 1'b0;
+                      MemWrite = 1'b0;
+                      RegWrite = 1'b0;
+                      IRWrite = 1'b0;
+                      
+                      ShiftEntCtrl = 2'b01;
+                      ShiftShiftCtrl = 2'b01;
+                      ShifterCtrl = 3'b001;
+  
+                     COUNTER = COUNTER + 6'b000001;
+                  end
+                  else 
+                    if(COUNTER == 6'b000001) begin
+                      ShifterCtrl = 3'b010;
+                      
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER < 6'b000100) begin
+                      ShifterCtrl = 3'b000;
 
-                        COUNTER = 6'b000000;
-                        state = FETCH;
-                      end
-              end
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b01;
+                      RegWrite = 1'b1;
+
+                      COUNTER = 6'b000000;
+                      state = FETCH;
+                    end
+                
+                end
               SRA: begin
                 if(COUNTER == 6'b000000) begin
-                        // zerar todos os sinais que permitem escrita
-                        A_W = 1'b0;
-                        B_W = 1'b0;
-                        MDR_W = 1'b0;
-                        RegDiv_W = 1'b0; 
-                        ALUOut_W = 1'b0;
-                        PCWrite = 1'b0;
-                        EPC_W = 1'b0;
-                        Hi_W = 1'b0; 
-                        Lo_W = 1'b0;
-                        MemWrite = 1'b0;
-                        RegWrite = 1'b0;
-                        IRWrite = 1'b0;
-                        
-                        ShiftEntCtrl = 2'b01;
-                        ShiftShiftCtrl = 2'b01;
-                        ShifterCtrl = 3'b001;
-    
-                       COUNTER = COUNTER + 6'b000001;
-                    end
-                    else 
-                      if(COUNTER == 6'b000001) begin
-                        ShifterCtrl = 3'b100;
-                        
-                        COUNTER = COUNTER + 6'b000001;
-                        
-                      end else if (COUNTER == 6'b000010) begin
-                        ShifterCtrl = 3'b000;
-                        EntWrite = 2'b01;
-                        EntEnd = 2'b00;
-                        RegWrite = 1'b1;
-
-                        COUNTER = 6'b000000;
-                        state = FETCH;
-                      end
+                      // zerar todos os sinais que permitem escrita
+                      A_W = 1'b0;
+                      B_W = 1'b0;
+                      MDR_W = 1'b0;
+                      RegDiv_W = 1'b0; 
+                      ALUOut_W = 1'b0;
+                      PCWrite = 1'b0;
+                      EPC_W = 1'b0;
+                      Hi_W = 1'b0; 
+                      Lo_W = 1'b0;
+                      MemWrite = 1'b0;
+                      RegWrite = 1'b0;
+                      IRWrite = 1'b0;
+                      
+                      ShiftEntCtrl = 2'b01;
+                      ShiftShiftCtrl = 2'b01;
+                      ShifterCtrl = 3'b001;
+  
+                     COUNTER = COUNTER + 6'b000001;
                   end
+                  else 
+                    if(COUNTER == 6'b000001) begin
+                      ShifterCtrl = 3'b100;
+                      
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER < 6'b000100) begin
+                      ShifterCtrl = 3'b000;
+
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b01;
+                      RegWrite = 1'b1;
+
+                      COUNTER = 6'b000000;
+                      state = FETCH;
+                    end
+                
+                end
               SRL: begin
-              if(COUNTER == 6'b000000) begin
+                if(COUNTER == 6'b000000) begin
                       // zerar todos os sinais que permitem escrita
                       A_W = 1'b0;
                       B_W = 1'b0;
@@ -765,18 +817,23 @@ module controle(
                       
                       COUNTER = COUNTER + 6'b000001;
                       
-                    end else if (COUNTER == 6'b000010) begin
+                    end else if (COUNTER < 6'b000100) begin
                       ShifterCtrl = 3'b000;
-                      EntWrite = 2'b01;
-                      EntEnd = 2'b00;
+
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b01;
                       RegWrite = 1'b1;
 
                       COUNTER = 6'b000000;
                       state = FETCH;
                     end
+                
                 end
               SLLV: begin
-              if(COUNTER == 6'b000000) begin
+                if(COUNTER == 6'b000000) begin
                       // zerar todos os sinais que permitem escrita
                       A_W = 1'b0;
                       B_W = 1'b0;
@@ -803,18 +860,23 @@ module controle(
                       
                       COUNTER = COUNTER + 6'b000001;
                       
-                    end else if (COUNTER == 6'b000010) begin
+                    end else if (COUNTER < 6'b000100) begin
                       ShifterCtrl = 3'b000;
-                      EntWrite = 2'b01;
-                      EntEnd = 2'b00;
+
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b01;
                       RegWrite = 1'b1;
 
                       COUNTER = 6'b000000;
                       state = FETCH;
                     end
+                
                 end
               SRAV: begin
-              if(COUNTER == 6'b000000) begin
+                if(COUNTER == 6'b000000) begin
                       // zerar todos os sinais que permitem escrita
                       A_W = 1'b0;
                       B_W = 1'b0;
@@ -841,15 +903,20 @@ module controle(
                       
                       COUNTER = COUNTER + 6'b000001;
                       
-                    end else if (COUNTER == 6'b000010) begin
+                    end else if (COUNTER < 6'b000100) begin
                       ShifterCtrl = 3'b000;
-                      EntWrite = 2'b01;
-                      EntEnd = 2'b00;
+
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b01;
                       RegWrite = 1'b1;
 
                       COUNTER = 6'b000000;
                       state = FETCH;
                     end
+                
                 end
 
               BEQ: begin
@@ -881,6 +948,10 @@ module controle(
                     PCCtrl = 2'b01;
                     PCWrite = 1'b1;
                   end
+                  
+                  COUNTER = COUNTER + 6'b000001;
+                end
+                else if (COUNTER == 6'b000010) begin
                   
                   COUNTER = 6'b000000;
                   state = FETCH;
@@ -917,6 +988,10 @@ module controle(
                     PCWrite = 1'b1;
                   end
                   
+                  COUNTER = COUNTER + 6'b000001;
+                end
+                else if (COUNTER == 6'b000010) begin
+                  
                   COUNTER = 6'b000000;
                   state = FETCH;
                 end
@@ -951,6 +1026,10 @@ module controle(
                     PCCtrl = 2'b01;
                     PCWrite = 1'b1;
                   end
+                  
+                  COUNTER = COUNTER + 6'b000001;
+                end
+                else if (COUNTER == 6'b000010) begin
                   
                   COUNTER = 6'b000000;
                   state = FETCH;
@@ -987,12 +1066,16 @@ module controle(
                     PCWrite = 1'b1;
                   end
                   
+                  COUNTER = COUNTER + 6'b000001;
+                end
+                else if (COUNTER == 6'b000010) begin
+                  
                   COUNTER = 6'b000000;
                   state = FETCH;
                 end
 	      end 
               BREAK: begin
-                if(COUNTER == 6'b000000) begin
+                if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1015,7 +1098,7 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     end
-                  else if (COUNTER == 6'b000001) begin
+                else if (COUNTER == 6'b000010) begin
                     PCSource = 2'b10;
                     PCCtrl = 2'b01;
                     PCWrite = 1'b1;
@@ -1081,7 +1164,7 @@ module controle(
                 end
                 
                 LW: begin
-                  if(COUNTER == 6'b000000) begin
+                  if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1103,18 +1186,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                  end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                  end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                  end else if(COUNTER == 6'b000111) begin
                     LoadCtrl = 2'b01;
                     EntEnd = 2'b00;
                     EntWrite = 3'b101;
@@ -1127,7 +1210,7 @@ module controle(
                 end
             
                 LH: begin
-                  if(COUNTER == 6'b000000) begin
+                  if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1149,18 +1232,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                  end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                  end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                  end else if(COUNTER == 6'b000111) begin
                     LoadCtrl = 2'b10;
                     EntEnd = 2'b00;
                     EntWrite = 3'b101;
@@ -1173,7 +1256,7 @@ module controle(
 		end
 
                 LB: begin
-                  if(COUNTER == 6'b000000) begin
+                  if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1195,18 +1278,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                  end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                  end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                  end else if(COUNTER == 6'b000111) begin
                     LoadCtrl = 2'b11;
                     EntEnd = 2'b00;
                     EntWrite = 3'b101;
@@ -1218,7 +1301,7 @@ module controle(
                   end
 		end
               SW: begin
-                if(COUNTER == 6'b000000) begin
+                if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1240,18 +1323,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                end else if(COUNTER == 6'b000111) begin
                     StoreCtrl = 2'b01;
                     MemWrite = 1'b1;
 
@@ -1261,7 +1344,7 @@ module controle(
                   end
               end      
               SH: begin
-                if(COUNTER == 6'b000000) begin
+                if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1283,18 +1366,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                end else if(COUNTER == 6'b000111) begin
                     StoreCtrl = 2'b10;
                     MemWrite = 1'b1;
 
@@ -1304,7 +1387,7 @@ module controle(
                   end
               end      
               SB: begin
-                if(COUNTER == 6'b000000) begin
+                if(COUNTER < 6'b000010) begin
                     // zerar todos os sinais que permitem escrita
                     A_W = 1'b0;
                     B_W = 1'b0;
@@ -1326,18 +1409,18 @@ module controle(
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000001) begin
+                end else if(COUNTER < 6'b000101) begin
                     MemReadCtrl = 3'b100;
                     MemWrite = 1'b0;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000010) begin
+                end else if(COUNTER < 6'b000111) begin
                     MDR_W = 1'b1;
 
                     COUNTER = COUNTER + 6'b000001;
                     
-                  end else if(COUNTER == 6'b000011) begin
+                end else if(COUNTER == 6'b000111) begin
                     StoreCtrl = 2'b11;
                     MemWrite = 1'b1;
 
@@ -1349,42 +1432,47 @@ module controle(
 
               LUI: begin
                 if(COUNTER == 6'b000000) begin
-                    // zerar todos os sinais que permitem escrita
-                    A_W = 1'b0;
-                    B_W = 1'b0;
-                    MDR_W = 1'b0;
-                    RegDiv_W = 1'b0; 
-                    ALUOut_W = 1'b0;
-                    PCWrite = 1'b0;
-                    EPC_W = 1'b0;
-                    Hi_W = 1'b0; 
-                    Lo_W = 1'b0;
-                    MemWrite = 1'b0;
-                    RegWrite = 1'b0;
-                    IRWrite = 1'b0;
-                    
-                    ShiftEntCtrl = 2'b00;
-                    ShiftShiftCtrl = 2'b10;
-                    ShifterCtrl = 3'b001;
+                      // zerar todos os sinais que permitem escrita
+                      A_W = 1'b0;
+                      B_W = 1'b0;
+                      MDR_W = 1'b0;
+                      RegDiv_W = 1'b0; 
+                      ALUOut_W = 1'b0;
+                      PCWrite = 1'b0;
+                      EPC_W = 1'b0;
+                      Hi_W = 1'b0; 
+                      Lo_W = 1'b0;
+                      MemWrite = 1'b0;
+                      RegWrite = 1'b0;
+                      IRWrite = 1'b0;
+                      
+                      ShiftEntCtrl = 2'b00;
+                      ShiftShiftCtrl = 2'b10;
+                      ShifterCtrl = 3'b001;
+  
+                     COUNTER = COUNTER + 6'b000001;
+                  end
+                  else 
+                    if(COUNTER == 6'b000001) begin
+                      ShifterCtrl = 3'b010;
+                      
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER < 6'b000100) begin
+                      ShifterCtrl = 3'b000;
 
-                   COUNTER = COUNTER + 6'b000001;
+                      COUNTER = COUNTER + 6'b000001;
+                      
+                    end else if (COUNTER == 6'b000100) begin
+                      EntWrite = 3'b001;
+                      EntEnd = 2'b00;
+                      RegWrite = 1'b1;
+
+                      COUNTER = 6'b000000;
+                      state = FETCH;
+                    end
+                
                 end
-                else 
-                  if(COUNTER == 6'b000001) begin
-                    ShifterCtrl = 3'b010;
-                    
-                    COUNTER = COUNTER + 6'b000001;
-                    
-                  end else if (COUNTER == 6'b000010) begin
-                    ShifterCtrl = 3'b000;
-                    EntWrite = 3'b001;
-                    EntEnd = 2'b00;
-                    RegWrite = 1'b1;
-
-                    COUNTER = 6'b000000;
-                    state = FETCH;
-                  end
-                  end
               RTE: begin
                 if(COUNTER == 6'b000000) begin
                     // zerar todos os sinais que permitem escrita
@@ -1428,7 +1516,6 @@ module controle(
                     ALUSrcA = 2'b10;
                     ALUSrcB = 2'b00;
                     ALUCtrl = 3'b111;
-                    ALUOut_W = 1'b1;
   
                     COUNTER = COUNTER + 6'b000001;
                  end else if (COUNTER == 6'b000001) begin
@@ -1459,11 +1546,10 @@ module controle(
                     ALUSrcA = 2'b10;
                     ALUSrcB = 2'b11;
                     ALUCtrl = 3'b111;
-                    ALUOut_W = 1'b1;
   
                     COUNTER = COUNTER + 6'b000001;
                   end else if (COUNTER == 6'b000001) begin
-                    EntEnd = 2'b01;
+                    EntEnd = 2'b00;
                     EntWrite = 3'b111;
                     RegWrite = 1'b1;
                   
@@ -1472,20 +1558,228 @@ module controle(
                   end
                 end
               MULT: begin
-                if(COUNTER == 6'b100000) begin
-                    HiCtrl = 1'b0;
-                    LoCtrl = 1'b0;
-                    Hi_W = 1'b0;
+                if(COUNTER == 6'b000000) begin
+                    // zerar todos os sinais que permitem escrita
+                    A_W = 1'b0;
+                    B_W = 1'b0;
+                    MDR_W = 1'b0;
+                    RegDiv_W = 1'b0; 
+                    ALUOut_W = 1'b0;
+                    PCWrite = 1'b0;
+                    EPC_W = 1'b0;
+                    Hi_W = 1'b0; 
                     Lo_W = 1'b0;
+                    MemWrite = 1'b0;
+                    RegWrite = 1'b0;
+                    IRWrite = 1'b0;
+                  
+                    MultCtrl = 1'b1;
                      
-                    COUNTER = 6'b000000;
-                    state = FETCH;
-                  end else if(COUNTER < 6'b100000) begin
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                end else if(COUNTER <= 6'b100001) begin
                     MultCtrl = 1'b0;
+                  
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                  end
+                else if (COUNTER == 6'b100010) begin
+                  HiCtrl = 1'b1;
+                  LoCtrl = 1'b1;
+                  Hi_W = 1'b1;
+                  Lo_W = 1'b1;
+                  
+                  COUNTER = 6'b000000;
+                  state = FETCH;
+                end
+              end
+            DIV: begin
+                if(COUNTER == 6'b000000) begin
+                    // zerar todos os sinais que permitem escrita
+                    A_W = 1'b0;
+                    B_W = 1'b0;
+                    MDR_W = 1'b0;
+                    RegDiv_W = 1'b0; 
+                    ALUOut_W = 1'b0;
+                    PCWrite = 1'b0;
+                    EPC_W = 1'b0;
+                    Hi_W = 1'b0; 
+                    Lo_W = 1'b0;
+                    MemWrite = 1'b0;
+                    RegWrite = 1'b0;
+                    IRWrite = 1'b0;
+
+                    DivSrcA = 1'b1;
+                    DivSrcB = 1'b0;
+                    DivCtrl = 1'b1;
+                     
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                end else 
+                  if(COUNTER < 6'b000011) begin
+                    DivCtrl = 1'b0;
+
+                    if (divzero == 1'b1) begin
+                        COUNTER = 6'b000000;
+                        state = DIV_ZERO;
+                      end
                       
                     COUNTER = COUNTER + 6'b000001;
-                  end
+                    
+                  end else
+                  if(COUNTER <= 6'b100010) begin
+                      
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                  end else 
+                    if (COUNTER == 6'b100011) begin
+                      if (divzero == 1'b0) begin
+                        HiCtrl = 1'b0;
+                        LoCtrl = 1'b0;
+                        Hi_W = 1'b1;
+                        Lo_W = 1'b1;
+  
+                        COUNTER = 6'b000000;
+                        state = FETCH;
+                      end
+                end
               end
+            ADDM: begin
+              if(COUNTER <= 6'b000001) begin
+                    // zerar todos os sinais que permitem escrita
+                    A_W = 1'b0;
+                    B_W = 1'b0;
+                    MDR_W = 1'b0;
+                    RegDiv_W = 1'b0; 
+                    ALUOut_W = 1'b0;
+                    PCWrite = 1'b0;
+                    EPC_W = 1'b0;
+                    Hi_W = 1'b0; 
+                    Lo_W = 1'b0;
+                    MemWrite = 1'b0;
+                    RegWrite = 1'b0;
+                    IRWrite = 1'b0;
+
+                    ALUSrcA = 2'b10;
+                    ALUSrcB = 2'b11;
+                    ALUCtrl = 3'b001;
+                    ALUOut_W = 1'b1;
+                     
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                end else
+                  if(COUNTER < 6'b000101) begin
+                    MemReadCtrl = 3'b100;
+                    MemWrite = 1'b0;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER <= 6'b000110) begin
+                    MDR_W = 1'b1;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER == 6'b000111) begin
+                    ALUSrcA = 2'b01;
+                    ALUSrcB = 2'b00;
+                    ALUCtrl = 3'b001;
+                    ALUOut_W = 1'b1;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER == 6'b001000) begin
+                    EntEnd = 2'b00;
+                    EntWrite = 3'b000;
+                    RegWrite = 1'b1;
+
+                    COUNTER = 6'b000000;
+                    state = FETCH;
+                  end
+            end
+            DIVM: begin
+              if(COUNTER <= 6'b000001) begin // ciclos 0 a 1
+                    // zerar todos os sinais que permitem escrita
+                    A_W = 1'b0;
+                    B_W = 1'b0;
+                    MDR_W = 1'b0;
+                    RegDiv_W = 1'b0; 
+                    ALUOut_W = 1'b0;
+                    PCWrite = 1'b0;
+                    EPC_W = 1'b0;
+                    Hi_W = 1'b0; 
+                    Lo_W = 1'b0;
+                    MemWrite = 1'b0;
+                    RegWrite = 1'b0;
+                    IRWrite = 1'b0;
+
+                    ALUSrcA = 2'b10;
+                    ALUCtrl = 3'b000;
+                    ALUOut_W = 1'b1;
+                     
+                    COUNTER = COUNTER + 6'b000001;
+                    
+                end else
+                  if(COUNTER < 6'b000100) begin // ciclos 2 a 3
+                    ALUOut_W = 1'b0;
+                    MemReadCtrl = 3'b100;
+                    MemWrite = 1'b0;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER < 6'b000110) begin // ciclo 4 a 5
+                    MDR_W = 1'b1;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER < 6'b001000) begin // ciclos 6 a 7
+                    MDR_W = 1'b0;
+                    
+                    RegDiv_W = 1'b1;
+                    MemReadCtrl = 3'b101;
+                    MemWrite = 1'b0;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER < 6'b001010) begin // ciclos 8 e 9
+                    RegDiv_W = 1'b0;
+                    MDR_W = 1'b1;
+
+                  COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER == 6'b001010) begin
+                    DivSrcA = 1'b0;
+                    DivSrcB = 1'b1;
+                    DivCtrl = 1'b1;
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER < 6'b101101) begin
+                    DivCtrl = 1'b0;
+
+                    if (divzero == 1'b1) begin
+                        COUNTER = 6'b000000;
+                        state = DIV_ZERO;
+                      end
+
+                    COUNTER = COUNTER + 6'b000001;
+                end else
+                  if(COUNTER == 6'b101101) begin
+                    if (divzero == 1'b1) begin
+                        COUNTER = 6'b000000;
+                        state = DIV_ZERO;
+                      end
+                    else 
+                    if (divzero == 1'b0) begin
+                        HiCtrl = 1'b0;
+                        LoCtrl = 1'b0;
+                        Hi_W = 1'b1;
+                        Lo_W = 1'b1;
+  
+                        COUNTER = 6'b000000;
+                        state = FETCH;
+                      end
+                  end
+            end
             endcase
         end
     end

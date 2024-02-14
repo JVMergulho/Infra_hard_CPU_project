@@ -80,7 +80,7 @@ module cpu (
     wire [31:0] Mult_Lo;
     wire [31:0] Mult_Hi;
 
-    wire overflow, neg, zero, ET, GT, LT;
+    wire overflow, neg, zero, ET, GT, LT, divzero;
 
     //saidas dos extend
     wire [31:0] Exception_Extended;
@@ -104,9 +104,9 @@ module cpu (
   parameter jal = 5'b11111;
   parameter sp = 5'b11101;
   parameter four = 32'b00000000000000000000000000000100;
-  parameter opinex_adress  = 32'b00000000000000000000000011111101;
-  parameter overf_adress   = 32'b00000000000000000000000011111110;
-  parameter divzero_adress = 32'b00000000000000000000000011111111;
+  parameter opinex_address  = 32'b00000000000000000000000011111101;
+  parameter overf_address   = 32'b00000000000000000000000011111110;
+  parameter divzero_address = 32'b00000000000000000000000011111111;
   parameter stacktop       = 32'b00000000000000000000000011100011;
 
 
@@ -116,7 +116,7 @@ module cpu (
     opcode,
     offset[5:0],
     overflow,
-    divZero,
+    divzero,
     GT,
     ET,
     MemReadCtrl, 
@@ -385,7 +385,7 @@ module cpu (
     PC_Out,
     opinex_address,
     overf_address,
-    divzero_adress,
+    divzero_address,
     ALUOut_Out,
     RegB_Out,
     MemReadCtrl,
@@ -394,7 +394,7 @@ module cpu (
   
   mux8to1_32b ENT_WRITE(
     ALUOut_Out,
-    ShiftOut,
+    Shift_Out,
     Hi_Out,
     Lo_Out,
     stacktop,
@@ -413,7 +413,7 @@ module cpu (
   );
 
   logic_extend8to32 EXCEPTION_EXTENDER (
-    Mem_Out,
+    Mem_Out[7:0],
     Exception_Extended
   );
 
@@ -438,11 +438,23 @@ module cpu (
 
   // DIVISOR
 
+  divider DIVIDER (
+    clk,
+    reset,
+    DivCtrl,
+    DivSrcA_Out,
+    DivSrcB_Out,
+    divzero,
+    Div_Hi,
+    Div_Lo
+  );
+
   // MULTIPLICADOR
 
   multiplier MULTIPLIER (
     clk,
     reset,
+    MultCtrl,
     RegB_Out,
     RegA_Out,
     Mult_Hi,
@@ -451,6 +463,19 @@ module cpu (
 
   // LOAD SIZE UNIT
 
+  load_unit LOAD_SIZE_UNIT (
+    MDR_Out,
+    LoadCtrl,
+    LoadSize_Out
+  );
+
   // STORE SIZE UNIT
+
+  store_unit STORE_SIZE_UNIT (
+    MDR_Out,
+    RegB_Out,
+    StoreCtrl,
+    StoreSize_Out
+  );
   
 endmodule
